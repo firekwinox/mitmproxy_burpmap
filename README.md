@@ -1,15 +1,16 @@
-# burpmap — a Burp-style site map and repeater for mitmproxy
+# burpmap
 
-Two extra pages in mitmproxy's console UI, opened by keypress the way `E` opens
-the event log:
+A Burp-style site map and repeater addon for mitmproxy.
 
-* **`T` — Site map.** A tree of every host, directory and request seen, plus the
+Two extra pages in mitmproxy's console UI:
+
+* **`T` - Site map.** A tree of every host, directory and request seen, plus the
   URIs that were only ever *referenced* by a page and never requested. Those
   render grey, and `v` requests one.
-* **`R` — Repeater.** Split panes, request left and response right, with the
+* **`R` - Repeater.** Split panes, request left and response right, with the
   request editable as raw text and every send kept in a per-slot history.
 
-Written against **mitmproxy 12.2.1**. Pure stdlib — no extra packages.
+Written against **mitmproxy 12.2.1**.
 
 ```
 mitmproxy -s burpmap.py
@@ -38,8 +39,8 @@ Site map  1 hosts  4 visited  8 unvisited   |   scope[on]: ^https://app\.example
 ```
 
 `●` requested · `○` seen as a link only · `▸`/`▾` collapsed/expanded ·
-`{id} (847)` folded id-like siblings. The row under the cursor is highlighted
-across the full width, in the focused pane only.
+
+`{id} (847)` folded id-like parts of the URI.
 
 | key | |
 |---|---|
@@ -51,7 +52,7 @@ across the full width, in the focused pane only.
 | `S` / `X` | set the scope regex / the scope exclusion regex |
 | `H` | scope to the host under the cursor |
 | `s` | show everything vs. in-scope only |
-| `c` | fold id-like path segments into `{id}` |
+| `c` | fold id-like parts of the URI into `{id}` for more concise output |
 | `u` | show only URIs never requested |
 | `A` / `Z` | expand / collapse the whole tree |
 | `d` | drop the focused node or request from the map |
@@ -86,13 +87,11 @@ widening the scope later shows traffic recorded while it was narrow.
 response comes back through the normal pipeline and the grey row turns black by
 itself. By default the request inherits `cookie`, `authorization`, `user-agent`,
 `accept` and `accept-language` from the page the link was found on, and gets a
-`Referer` pointing at it — without that, "visit" is useless on anything that needs
-a session. Turn it off with `sitemap_visit_inherit_headers=false`.
+`Referer` pointing at it. Turn it off with `sitemap_visit_inherit_headers=false`.
 
 ## Repeater
 
-Request on the left, response on the right, and the request is a raw text box —
-you edit the request line, the headers and the body in place.
+Request on the left, response on the right, and the request is a raw text box.
 
 ```
  #1 POST /api/login    #2 GET /admin
@@ -123,20 +122,6 @@ Content-Length: 29                        │
 | `D` / `N` | delete / rename the slot |
 
 `ctrl-r` in the flow list, flow view and site map creates a slot.
-
-### Why editing is modal
-
-mitmproxy's console is driven by single letters — `r` sends, `q` goes back, `e`
-edits. A text box that is always live would swallow all of them. So `e` enters the
-editor and `esc` leaves it, the header says which mode you are in, and `ctrl-r`
-applies-and-sends from inside the editor so the common loop never needs the round
-trip. Everything you type is raw HTTP; nothing goes through mitmproxy's structured
-editors unless you ask for it with `⏎`.
-
-The request line is origin-form (`POST /path HTTP/1.1`) with the target in the
-`Host` header, like Burp and like the wire. Editing `Host` retargets the request;
-an absolute-form request line (`POST https://other.test:8080/x HTTP/1.1`) retargets
-scheme, host and port at once.
 
 ### Content-Length and Transfer-Encoding
 
