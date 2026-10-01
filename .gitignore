@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+
+# Site maps saved with `w` / sitemap.save
+*.sitemap.json
+
+# Local virtualenvs
+.venv/
+venv/
