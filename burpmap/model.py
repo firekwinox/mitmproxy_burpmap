@@ -79,15 +79,21 @@ class Scope:
 
     def set(self, include: str = "", exclude: str = "") -> None:
         """Compile both patterns. Raises re.error, leaving the old scope intact."""
+        # Only recompile if the source strings have actually changed
+        if include == self.include_src and exclude == self.exclude_src:
+            return
         inc = re.compile(include) if include else None
         exc = re.compile(exclude) if exclude else None
         self._include, self._exclude = inc, exc
         self.include_src, self.exclude_src = include, exclude
 
     def match(self, url: str) -> bool:
-        if self._include is not None and not self._include.search(url):
+        # Normalize URL to lowercase for case-insensitive matching,
+        # since URLs are case-insensitive in scheme and host
+        normalized_url = url.lower()
+        if self._include is not None and not self._include.search(normalized_url):
             return False
-        if self._exclude is not None and self._exclude.search(url):
+        if self._exclude is not None and self._exclude.search(normalized_url):
             return False
         return True
 

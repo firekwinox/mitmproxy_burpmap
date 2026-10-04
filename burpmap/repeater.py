@@ -8,6 +8,7 @@ code to end up worse than the one already there.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from dataclasses import field
 from typing import Any
@@ -15,6 +16,8 @@ from typing import Optional
 from urllib.parse import urlsplit
 
 from burpmap import rawhttp
+
+logger = logging.getLogger(__name__)
 
 MARKER = ":repeat:"
 
@@ -120,6 +123,9 @@ class Repeater:
         slot = self.inflight.pop(flow.id, None)
         if slot is not None:
             self._touch()
+        else:
+            # This can happen if a flow is resolved twice (e.g., error then response)
+            logger.debug("burpmap: flow %s resolved but was not in inflight tracking", flow.id)
         return slot
 
     def owns(self, flow: Any) -> bool:
@@ -149,4 +155,5 @@ class Repeater:
         self.slots.clear()
         self.inflight.clear()
         self.index = 0
+        self._counter = 0
         self._touch()

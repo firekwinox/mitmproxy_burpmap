@@ -53,6 +53,14 @@ class TestScope(unittest.TestCase):
         self.assertFalse(scope.match("https://other.com/app"))
         self.assertFalse(scope.match("https://ex.com/logout"))
 
+    def test_case_insensitive_matching(self):
+        scope = Scope(include=r"^https://ex\.com/")
+        # URLs with different cases should all match
+        self.assertTrue(scope.match("https://ex.com/app"))
+        self.assertTrue(scope.match("HTTPS://EX.COM/app"))
+        self.assertTrue(scope.match("HtTpS://Ex.CoM/app"))
+        self.assertFalse(scope.match("https://other.com/app"))
+
     def test_bad_regex_leaves_previous_scope_intact(self):
         scope = Scope(include="ex")
         with self.assertRaises(Exception):

@@ -19,6 +19,9 @@ from burpmap.model import DEFAULT_PORTS
 # Sources that can be named in the `sitemap_discovery` option.
 SOURCES = ("html", "js", "json", "headers")
 
+# Maximum length for URLs extracted from content
+MAX_URL_LENGTH = 2048
+
 SKIP_SCHEMES = ("javascript:", "mailto:", "tel:", "data:", "about:", "blob:", "#")
 
 # tag -> attributes that hold a single URL
@@ -44,14 +47,14 @@ _GENERIC_ATTRS = ("data-url", "data-href", "data-src", "data-endpoint", "data-ac
 
 # Quoted absolute URLs and rooted paths inside script/JSON bodies.
 _JS_URL = re.compile(
-    r"""['"`](https?://[^'"`\s<>\\]{3,2048}|/[^'"`\s<>\\]{0,2048})['"`]"""
+    r"""['"`](https?://[^'"`\s<>\\]{3,%d}|/[^'"`\s<>\\]{0,%d})['"`]""" % (MAX_URL_LENGTH, MAX_URL_LENGTH)
 )
 # Things that are shaped like a path but are not one.
 _JS_REJECT = re.compile(r"[\s${}\\]|%[sdv]|^/[*/]|^/$")
 _MIME_LIKE = re.compile(r"^/(?:[a-z0-9.+-]+)$", re.I)
-_CSS_URL = re.compile(r"""url\(\s*['"]?([^'")\s]{1,2048})['"]?\s*\)""")
+_CSS_URL = re.compile(r"""url\(\s*['"]?([^'")\s]{1,%d})['"]?\s*\)""" % MAX_URL_LENGTH)
 _REFRESH_URL = re.compile(r"url\s*=\s*['\"]?([^'\";]+)", re.I)
-_LINK_HEADER = re.compile(r"<([^>]{1,2048})>")
+_LINK_HEADER = re.compile(r"<([^>]{1,%d})>" % MAX_URL_LENGTH)
 
 
 def normalise(url: str) -> str:

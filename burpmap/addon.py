@@ -12,6 +12,13 @@ import re
 from collections.abc import Sequence
 from typing import Optional
 
+# Default option values
+DEFAULT_SITEMAP_DISCOVERY_MAX_BODY = 2 * 1024 * 1024  # 2 MB
+DEFAULT_SITEMAP_DISCOVERY_MAX_LINKS = 500
+DEFAULT_SITEMAP_COLLAPSE_THRESHOLD = 3
+DEFAULT_SITEMAP_VISIT_MAX = 50
+DEFAULT_SITEMAP_MAX_ENTRIES = 100000
+
 import mitmproxy.types
 from mitmproxy import command
 from mitmproxy import connection
@@ -84,13 +91,13 @@ class BurpMap:
         loader.add_option(
             "sitemap_discovery_max_body",
             int,
-            2 * 1024 * 1024,
+            DEFAULT_SITEMAP_DISCOVERY_MAX_BODY,
             "Skip link extraction for response bodies larger than this many bytes.",
         )
         loader.add_option(
             "sitemap_discovery_max_links",
             int,
-            500,
+            DEFAULT_SITEMAP_DISCOVERY_MAX_LINKS,
             "Maximum number of links to take from a single response.",
         )
         loader.add_option(
@@ -102,7 +109,7 @@ class BurpMap:
         loader.add_option(
             "sitemap_collapse_threshold",
             int,
-            3,
+            DEFAULT_SITEMAP_COLLAPSE_THRESHOLD,
             "How many id-like siblings are needed before they fold into {id}.",
         )
         loader.add_option(
@@ -120,7 +127,7 @@ class BurpMap:
         loader.add_option(
             "sitemap_visit_max",
             int,
-            50,
+            DEFAULT_SITEMAP_VISIT_MAX,
             "Maximum number of URIs a single subtree visit will request.",
         )
         loader.add_option(
@@ -133,7 +140,7 @@ class BurpMap:
         loader.add_option(
             "sitemap_max_entries",
             int,
-            100000,
+            DEFAULT_SITEMAP_MAX_ENTRIES,
             "Stop adding to the site map past this many entries.",
         )
 
@@ -372,8 +379,12 @@ class BurpMap:
         if entry is not None:
             return entry
         row = widget.focused_row()
-        if row is None or row.node is None or row.kind == "group":
-            raise exceptions.CommandError("Nothing requestable is focused.")
+        if row is None:
+            raise exceptions.CommandError("Nothing is focused.")
+        if row.node is None:
+            raise exceptions.CommandError("The focused row has no associated node.")
+        if row.kind == "group":
+            raise exceptions.CommandError("Cannot request a collapsed {id} group directly - expand it first.")
         return Entry(method="GET", url=row.node.path())
 
     @command.command("sitemap.visit")
