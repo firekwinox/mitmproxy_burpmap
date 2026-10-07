@@ -241,6 +241,16 @@ class TestRepeaterModel(unittest.TestCase):
         addon.repeater.scroll_history(10)
         self.assertEqual(slot.cursor, 1)
 
+    def test_malformed_hackvertor_tag_is_a_command_error(self):
+        addon = BurpMap()
+        with taddons.context(addon):
+            addon.repeater_add([html_flow()])
+            slot = addon.repeater.current
+            slot.flow.request.path = "/<@urlencode>x"
+            with self.assertRaisesRegex(exceptions.CommandError, "never closed"):
+                addon.repeater_send()
+        self.assertEqual(slot.history, [])
+
     def test_non_http_flows_are_refused(self):
         addon = BurpMap()
         with taddons.context(addon):

@@ -142,6 +142,26 @@ Each send is a snapshot, so the history is a real record and the template keeps
 your edits. Sends are added to the flow list; the template is not, unless you open
 it with `⏎`.
 
+### Hackvertor tags
+
+Hackvertor tags in the template are expanded when it is sent, so the request
+keeps the payload in clear and can be edited and resent. They work in the
+request line, header values and body, and nest innermost first:
+
+```
+<@urlencode>hello world<@/urlencode>                          -> hello%20world
+<@base64encode>test<@/base64encode>                           -> dGVzdA==
+<@base64decode>/w==<@/base64decode>                           -> the byte 0xff
+<@urlencode><@base64encode>test<@/base64encode><@/urlencode>  -> dGVzdA%3D%3D
+```
+
+The tags are `urlencode`, `urldecode`, `base64encode` and `base64decode`; they
+work on bytes, so binary results go on the wire as is. The send history shows the
+expanded request. A tag that is unclosed, closed by the wrong tag or does not
+decode stops the send with an error rather than sending the literal tag.
+Content-Length is recomputed for the expanded body if it matched the template's
+body; a deliberately wrong one is kept.
+
 ## Options
 
 | option | default | |
@@ -209,7 +229,7 @@ To get a saved capture into the tree, load the flows and then run
 ~/.local/share/pipx/venvs/mitmproxy/bin/python tests/tui_smoke.py
 ```
 
-The first is 159 unit tests over the tree, the link extractor, the raw HTTP
+The first is 176 unit tests over the tree, the link extractor, the raw HTTP
 round trip, the addon hooks and the console integration. The second runs 32
 checks: it starts a fixture site
 and a real mitmproxy on a pty, presses keys and reads the screen back — including

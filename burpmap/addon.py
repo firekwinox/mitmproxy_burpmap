@@ -30,6 +30,7 @@ from mitmproxy.log import ALERT
 
 from burpmap import console
 from burpmap import discovery
+from burpmap import hackvertor
 from burpmap import rawhttp
 from burpmap.model import Display
 from burpmap.model import Entry
@@ -604,7 +605,10 @@ class BurpMap:
                 widget.commit_edit(ctx.options.repeater_update_content_length)
             except ValueError as exc:
                 raise exceptions.CommandError(f"Not sent, the request is malformed: {exc}")
-        sent = self.repeater.prepare_send(slot)
+        try:
+            sent = self.repeater.prepare_send(slot)
+        except hackvertor.TagError as exc:
+            raise exceptions.CommandError(f"Not sent: {exc}")
         self._send([sent])
         self._refresh_repeater()
 

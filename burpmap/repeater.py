@@ -15,6 +15,9 @@ from typing import Any
 from typing import Optional
 from urllib.parse import urlsplit
 
+from mitmproxy.http import Headers
+
+from burpmap import hackvertor
 from burpmap import rawhttp
 
 logger = logging.getLogger(__name__)
@@ -52,6 +55,29 @@ class Slot:
             else:
                 codes.append("...")
         return f"{len(self.history)} sent: " + " ".join(codes)
+
+
+def expand_tags(request: Any) -> None:
+    """Expand Hackvertor tags in the path, header values and body, in place."""
+    request.data.path = hackvertor.process(request.data.path)
+    fields = [(name, hackvertor.process(value)) for name, value in request.headers.fields]
+    if fields != list(request.headers.fields):
+        request.headers = Headers(fields)
+
+    body = request.get_content(strict=False)
+    if not body or not hackvertor.has_tags(body):
+        return
+    # Setting content rewrites Content-Length. That is wanted when it matched
+    # the template body, but a single wrong one, or several, was typed on
+    # purpose (a smuggling test) and goes out as typed.
+    lengths = request.headers.get_all("content-length")
+    deliberate = len(lengths) > 1 or (
+        len(lengths) == 1 and lengths[0].strip() != str(len(request.raw_content or b""))
+    )
+    typed = list(request.headers.fields)
+    request.content = hackvertor.process(body)
+    if deliberate:
+        request.headers = Headers(typed)
 
 
 class Repeater:
@@ -105,6 +131,10 @@ class Repeater:
 
         ``replay.client`` clears and rewrites the response on the flow it is given,
         so sending a copy is what makes a per-slot send history possible at all.
+
+        Hackvertor tags are expanded on the copy only, so the template keeps
+        them. A malformed tag raises hackvertor.TagError before anything is
+        recorded.
         """
         sent = slot.flow.copy()
         sent.live = False
@@ -112,6 +142,7 @@ class Repeater:
         sent.error = None
         sent.marked = MARKER
         sent.comment = f"burpmap repeater {slot.name} send {len(slot.history) + 1}"
+        expand_tags(sent.request)
         slot.history.append(sent)
         slot.cursor = len(slot.history) - 1
         self.inflight[sent.id] = slot
